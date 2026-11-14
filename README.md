@@ -33,7 +33,10 @@ same occupied slots to reproduce the simulated performance. If a real player
 disconnects during the countdown, it is canceled and the simulated slots are
 cleared so replacements can join.
 On the host screen, the characters bounce on successful notes; a miss interrupts
-the movement.
+the movement. During play they perform on a stage overlooking a city whose
+windows light up in proportion to the shared battery charge. At the end, a
+scoreboard overlays the stage with individual scores, team points, and average
+accuracy. You can dismiss it to view the final city.
 
 Each instrument is played on the host only when its player hits a note. Missed
 notes and extra taps produce no sound for that part; simulated players follow
