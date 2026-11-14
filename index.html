@@ -423,7 +423,8 @@
       { midiInstrument: "acoustic guitar (nylon)", label: "Chords", kind: "chords" }
     ];
     const SONG_FILE = "./Daft-Punk-ft-Pharell-Get-Lucky-samcera-20201004170621-nonstop2k.com.mid";
-    const LOOPS = 4;
+    const GAME_DURATION = 30;
+    const NETWORK_GRACE_MS = 1200;
     const TRAVEL_MS = 1750;
     const HIT_WINDOWS = [
       { max: 60, points: 100, label: "Perfect", cls: "perfect" },
@@ -508,8 +509,19 @@
           Math.max(...part.notes.map((note) => note.time + note.duration))
         ));
         if (!Number.isFinite(duration) || duration <= 0) throw new Error("The selected MIDI parts have no playable duration.");
-        song = { parts: selected, duration, loops: LOOPS };
-        $("song-status").querySelector("span:last-child").textContent = `MIDI ready · ${duration.toFixed(1)} sec × ${LOOPS}`;
+        for (const part of selected) {
+          const events = [];
+          for (let loop = 0; loop * duration < GAME_DURATION; loop += 1) {
+            for (const event of part.events) {
+              const time = loop * duration + event.time;
+              if (time < GAME_DURATION) events.push({ ...event, id: events.length, time });
+            }
+          }
+          if (!events.length) throw new Error(`The ${part.label} part has no notes in the game.`);
+          part.events = events;
+        }
+        song = { parts: selected, loopDuration: duration, duration: GAME_DURATION };
+        $("song-status").querySelector("span:last-child").textContent = `MIDI ready · ${GAME_DURATION} sec`;
         $("song-status").querySelector(".dot").classList.add("good");
         return song;
       })
@@ -582,6 +594,7 @@
     const connections = new Set();
     const pendingJoins = new WeakSet();
     let synths = null;
+    let musicOutput = null;
     let simulatedEvents = [];
     let simulatedEventIndex = 0;
 
@@ -797,7 +810,7 @@
     function hostTimeline() {
       if (gameState !== "playing" || !song) return;
       const elapsed = Math.max(0, (performance.now() - hostStartAt) / 1000);
-      const total = song.duration * song.loops;
+      const total = song.duration;
       $("song-progress").style.width = `${Math.min(100, elapsed / total * 100)}%`;
       $("song-time").textContent = `${formatTime(Math.min(elapsed, total))} / ${formatTime(total)}`;
       hostRaf = requestAnimationFrame(hostTimeline);
@@ -805,11 +818,12 @@
 
     function setupSynths() {
       if (synths) return;
+      musicOutput = new Tone.Gain(1).toDestination();
       synths = [
-        new Tone.MembraneSynth({ pitchDecay: .025, octaves: 4, envelope: { attack: .001, decay: .18, sustain: 0, release: .08 } }).toDestination(),
-        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .01, decay: .12, sustain: .45, release: .16 } }).toDestination(),
-        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .005, decay: .18, sustain: .05, release: .1 } }).toDestination(),
-        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .015, decay: .18, sustain: .25, release: .25 } }).toDestination()
+        new Tone.MembraneSynth({ pitchDecay: .025, octaves: 4, envelope: { attack: .001, decay: .18, sustain: 0, release: .08 } }).connect(musicOutput),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .01, decay: .12, sustain: .45, release: .16 } }).connect(musicOutput),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .005, decay: .18, sustain: .05, release: .1 } }).connect(musicOutput),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .015, decay: .18, sustain: .25, release: .25 } }).connect(musicOutput)
       ];
       const volumes = [-7, -5, -12, -11];
       synths.forEach((synth, index) => { synth.volume.value = volumes[index]; });
@@ -819,7 +833,9 @@
       const now = performance.now();
       const audioNow = Tone.now();
       for (const note of event.notes) {
-        const time = audioNow + Math.max(0, (expectedAt + note.offset * 1000 - now) / 1000);
+        const delay = Math.max(0, (expectedAt + note.offset * 1000 - now) / 1000);
+        if (now + delay * 1000 >= hostStartAt + song.duration * 1000) continue;
+        const time = audioNow + delay;
         const pitch = slot === 0 ? "C2" : Tone.Frequency(note.midi, "midi").toFrequency();
         const duration = slot === 0 ? Math.min(.25, note.duration)
           : slot === 3 ? Math.min(.8, Math.max(.08, note.duration))
@@ -860,8 +876,8 @@
           score: 0,
           combo: 0,
           clockOffset: 0,
-          maxScore: song.parts[slot].events.length * song.loops * 100,
-          lanes: makeLanePattern(song.parts[slot].events.length * song.loops),
+          maxScore: song.parts[slot].events.length * 100,
+          lanes: makeLanePattern(song.parts[slot].events.length),
           resolved: new Set()
         };
       });
@@ -883,18 +899,16 @@
       for (const player of hostPlayers) {
         if (!player?.simulated) continue;
         const events = song.parts[player.slot].events;
-        for (let loop = 0; loop < song.loops; loop += 1) {
-          for (const event of events) {
-            const missed = random() < 0.04;
-            const offset = (random() + random() - 1) * 150;
-            const expected = (loop * song.duration + event.time) * 1000;
-            simulatedEvents.push({
-              slot: player.slot,
-              eventId: loop * events.length + event.id,
-              at: expected + (missed ? 200 : offset),
-              missed
-            });
-          }
+        for (const event of events) {
+          const missed = random() < 0.04;
+          const offset = (random() + random() - 1) * 150;
+          const at = event.time * 1000 + (missed ? 200 : offset);
+          simulatedEvents.push({
+            slot: player.slot,
+            eventId: event.id,
+            at: Math.min(at, song.duration * 1000),
+            missed: missed || at >= song.duration * 1000
+          });
         }
       }
       simulatedEvents.sort((a, b) => a.at - b.at);
@@ -954,7 +968,7 @@
       $("host-status").querySelector("span:last-child").textContent = "The colony is playing";
       $("host-status").querySelector(".dot").classList.add("good");
       $("song-progress").style.width = "0%";
-      $("song-time").textContent = `0:00 / ${formatTime(song.duration * song.loops)}`;
+      $("song-time").textContent = `0:00 / ${formatTime(song.duration)}`;
       for (const player of hostPlayers) {
         player.score = 0;
         player.combo = 0;
@@ -963,9 +977,15 @@
       refreshHost();
       refreshTeamMeters();
       setupSynths();
-      broadcast({ type: "start", startAt: hostStartAt, duration: song.duration, loops: song.loops });
+      musicOutput.gain.setValueAtTime(0, Tone.immediate() + Math.max(0, (hostStartAt + song.duration * 1000 - performance.now()) / 1000));
+      broadcast({ type: "start", startAt: hostStartAt, duration: song.duration });
       hostTimeline();
-      gameEndTimer = setTimeout(finishGame, song.duration * song.loops * 1000 + 1450);
+      setTimeout(() => {
+        if (gameState !== "playing") return;
+        $("host-status").querySelector("span:last-child").textContent = "Time's up · finalizing scores";
+        broadcast({ type: "time-up" });
+      }, Math.max(0, hostStartAt + song.duration * 1000 - performance.now()));
+      gameEndTimer = setTimeout(finishGame, Math.max(0, hostStartAt + song.duration * 1000 + NETWORK_GRACE_MS - performance.now()));
     }
 
     function resolveMisses() {
@@ -975,18 +995,15 @@
       let updated = false;
       for (const player of hostPlayers) {
         if (!player) continue;
-        for (let loop = 0; loop < song.loops; loop += 1) {
-          for (const event of song.parts[player.slot].events) {
-            const id = loop * song.parts[player.slot].events.length + event.id;
-            if (player.resolved.has(id)) continue;
-            const expected = hostStartAt + (loop * song.duration + event.time) * 1000;
-            if (now > expected + 1200) {
-              player.resolved.add(id);
-              player.combo = 0;
-              dance(player.slot, false);
-              player.conn?.open && player.conn.send({ type: "judgement", eventId: id, label: "Miss", cls: "miss", score: player.score, combo: player.combo });
-              updated = true;
-            }
+        for (const event of song.parts[player.slot].events) {
+          if (player.resolved.has(event.id)) continue;
+          const expected = hostStartAt + event.time * 1000;
+          if (now > expected + NETWORK_GRACE_MS) {
+            player.resolved.add(event.id);
+            player.combo = 0;
+            dance(player.slot, false);
+            player.conn?.open && player.conn.send({ type: "judgement", eventId: event.id, label: "Miss", cls: "miss", score: player.score, combo: player.combo });
+            updated = true;
           }
         }
       }
@@ -1007,13 +1024,12 @@
     function acceptTap(player, data) {
       if (gameState !== "playing" || !song || !Number.isInteger(data.eventId) ||
           !Number.isInteger(data.lane) || data.lane < 0 || data.lane > 3 || !Number.isFinite(data.clientTime)) return;
-      const eventCount = song.parts[player.slot].events.length;
-      const maxEvents = eventCount * song.loops;
-      if (data.eventId < 0 || data.eventId >= maxEvents || player.resolved.has(data.eventId)) return;
-      const loop = Math.floor(data.eventId / eventCount);
-      const event = song.parts[player.slot].events[data.eventId % eventCount];
-      const expectedAt = hostStartAt + (loop * song.duration + event.time) * 1000;
+      const events = song.parts[player.slot].events;
+      if (data.eventId < 0 || data.eventId >= events.length || player.resolved.has(data.eventId)) return;
+      const event = events[data.eventId];
+      const expectedAt = hostStartAt + event.time * 1000;
       const tapAt = data.clientTime + player.clockOffset;
+      if (tapAt < hostStartAt || tapAt >= hostStartAt + song.duration * 1000) return;
       const timing = data.lane === player.lanes[data.eventId]
         ? timingFor(tapAt - expectedAt)
         : { points: 0, label: "Miss", cls: "miss" };
@@ -1047,7 +1063,7 @@
       cancelAnimationFrame(hostRaf);
       clearInterval(missTimer);
       $("song-progress").style.width = "100%";
-      $("song-time").textContent = `${formatTime(song.duration * song.loops)} / ${formatTime(song.duration * song.loops)}`;
+      $("song-time").textContent = `${formatTime(song.duration)} / ${formatTime(song.duration)}`;
       const results = playerSummary();
       const exactTeamAccuracy = hostPlayers.reduce((sum, player) => sum + player.score / player.maxScore * 100, 0) / 4;
       const teamAccuracy = Math.round(exactTeamAccuracy * 10) / 10;
@@ -1199,8 +1215,8 @@
           clockOffset: 0,
           bestRtt: Infinity,
           syncSamples: 0,
-          maxScore: song ? song.parts[slot].events.length * LOOPS * 100 : 0,
-          lanes: makeLanePattern(song.parts[slot].events.length * song.loops),
+          maxScore: song.parts[slot].events.length * 100,
+          lanes: makeLanePattern(song.parts[slot].events.length),
           resolved: new Set()
         };
         hostPlayers[slot] = player;
@@ -1212,8 +1228,7 @@
           instrument: INSTRUMENTS[slot].label,
           events: song?.parts[slot].events || [],
           lanes: player.lanes,
-          duration: song?.duration || 0,
-          loops: LOOPS
+          duration: song.duration
         });
         refreshHost();
         broadcastAvailability();
@@ -1279,7 +1294,6 @@
     let clientEvents = [];
     let clientLanes = [];
     let clientDuration = 0;
-    let clientLoops = LOOPS;
     let clientClockOffset = 0;
     let clientBestRtt = Infinity;
     let clientSyncSamples = 0;
@@ -1404,7 +1418,6 @@
         clientEvents = data.events;
         clientLanes = data.lanes;
         clientDuration = data.duration;
-        clientLoops = data.loops;
         $("join-card").classList.add("hidden");
         $("assigned-card").classList.remove("hidden");
         $("assigned-mascot").replaceChildren(mascot(clientSlot));
@@ -1466,7 +1479,6 @@
       } else if (data.type === "start") {
         clientStartAt = data.startAt;
         clientDuration = data.duration;
-        clientLoops = data.loops;
         clientGameState = "playing";
         $("phone-view").classList.add("game-active");
         $("phone-countdown-card").classList.add("hidden");
@@ -1474,6 +1486,8 @@
         $("phone-footer").classList.add("hidden");
         setBadge($("phone-status"), "Playing", true);
         renderLane();
+      } else if (data.type === "time-up") {
+        setBadge($("phone-status"), "Time's up · finalizing scores");
       } else if (data.type === "judgement") {
         clientScore = data.score;
         clientCombo = data.combo;
@@ -1515,17 +1529,15 @@
     }
 
     function eventAt(index) {
-      const count = clientEvents.length;
-      const loop = Math.floor(index / count);
-      const event = clientEvents[index % count];
-      return loop * clientDuration + event.time;
+      return clientEvents[index].time;
     }
 
     function handleTap(lane) {
       if (clientGameState !== "playing" || !clientConn?.open || clientStartAt == null) return;
       const clientTime = performance.now();
       const songTime = (clientTime + clientClockOffset - clientStartAt) / 1000;
-      const max = clientEvents.length * clientLoops;
+      if (songTime < 0 || songTime >= clientDuration) return;
+      const max = clientEvents.length;
       let best = -1;
       let bestDelta = Infinity;
       for (let index = 0; index < max; index += 1) {
@@ -1553,9 +1565,9 @@
       const laneHeight = lane.clientHeight;
       const hitY = laneHeight * .85;
       const travel = TRAVEL_MS / 1000;
-      const allEvents = clientEvents.length * clientLoops;
-      const first = Math.max(0, Math.floor(songTime / clientDuration) * clientEvents.length - 1);
-      const last = Math.min(allEvents, first + clientEvents.length + 12);
+      const allEvents = clientEvents.length;
+      const first = 0;
+      const last = allEvents;
       for (let index = first; index < last; index += 1) {
         if (clientLocalResolved.has(index)) continue;
         const eventTime = eventAt(index);
@@ -1569,13 +1581,13 @@
         note.style.setProperty("--player-color", clientColor);
         note.style.background = `linear-gradient(180deg, color-mix(in srgb, ${clientColor} 93%, white), ${clientColor})`;
         note.style.left = `${(clientLanes[index] + .5) * 25}%`;
-        const event = clientEvents[index % clientEvents.length];
+        const event = clientEvents[index];
         const duration = Math.max(...event.notes.map((item) => item.duration + item.offset));
         note.style.height = `${Math.max(38, Math.min(110, duration / travel * hitY))}px`;
         note.style.top = `${hitY - untilHit / travel * hitY}px`;
         lane.append(note);
       }
-      if (songTime >= clientDuration * clientLoops) return;
+      if (songTime >= clientDuration) return;
       clientRaf = requestAnimationFrame(renderLane);
     }
 
@@ -1630,7 +1642,7 @@
       missTimer = setInterval(resolveMisses, 100);
       midiReady.then(() => {
         hostPlayers.forEach((player, slot) => {
-          if (player) player.maxScore = song.parts[slot].events.length * LOOPS * 100;
+          if (player) player.maxScore = song.parts[slot].events.length * 100;
         });
         refreshTeamMeters();
       }).catch(() => {});

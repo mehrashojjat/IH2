@@ -41,6 +41,10 @@ accuracy. You can dismiss it to view the final city.
 Each instrument is played on the host only when its player hits a note. Missed
 notes and extra taps produce no sound for that part; simulated players follow
 the same rule. A late or delayed tap may make the sound arrive after the beat.
+The game lasts 30 seconds, repeating the MIDI as needed and stopping partway
+through the final repetition. Only notes scheduled before the cutoff count
+toward a player's maximum score. Taps must occur before 30 seconds; the final
+scoreboard follows after a short allowance for messages already in transit.
 
 On each phone, notes fall in four numbered columns. Tap the matching numbered
 button when the bottom of the tile reaches the hit line. The note positions are
