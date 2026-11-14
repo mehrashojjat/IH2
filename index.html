@@ -1,0 +1,1411 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#11131b">
+  <title>Invisible Heroes — Musical Electron Chain</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #f7f5ef;
+      --muted: #a7a9b5;
+      --panel: #1a1d28;
+      --panel-light: #222634;
+      --line: #34394a;
+      --red: #ff6b68;
+      --blue: #68aaff;
+      --green: #63dda0;
+      --yellow: #ffd35f;
+      --accent: #b6a2ff;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body { min-height: 100%; }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(ellipse at 50% -18%, #303047 0, transparent 48%),
+        #11131b;
+      color: var(--ink);
+      font: 16px/1.45 ui-rounded, "Avenir Next", Avenir, system-ui, sans-serif;
+    }
+
+    button, input { font: inherit; }
+    button { color: inherit; }
+
+    .hidden { display: none !important; }
+    .page { width: min(1120px, 100%); margin: 0 auto; padding: 28px 24px 48px; }
+    .eyebrow { color: var(--accent); font-size: .75rem; font-weight: 800; letter-spacing: .16em; text-transform: uppercase; }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { margin-bottom: 5px; font-size: clamp(2rem, 5vw, 3.5rem); line-height: 1.05; letter-spacing: -.045em; }
+    h2 { font-size: 1.2rem; }
+    .subtitle { color: var(--muted); margin: 0; }
+    .topbar { display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; margin-bottom: 28px; }
+    .badge { display: inline-flex; align-items: center; gap: 8px; padding: 8px 12px; border: 1px solid var(--line); border-radius: 999px; background: #171923; color: var(--muted); font-size: .82rem; white-space: nowrap; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--yellow); }
+    .dot.good { background: var(--green); box-shadow: 0 0 12px #63dda088; }
+    .panel { border: 1px solid var(--line); border-radius: 20px; background: linear-gradient(145deg, #1d202c, #171923); box-shadow: 0 18px 50px #0002; }
+
+    .host-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(285px, .75fr); gap: 18px; }
+    .host-main, .join-panel { padding: 22px; }
+    .section-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 15px; }
+    .section-heading h2 { margin: 0; }
+    .players-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+    .player-card { min-height: 178px; padding: 15px; border: 1px solid var(--line); border-radius: 16px; background: #161923; position: relative; overflow: hidden; }
+    .player-card:before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--player-color, var(--line)); opacity: .8; }
+    .player-card-top { display: flex; align-items: center; gap: 12px; }
+    .mascot { width: 48px; height: 48px; color: var(--player-color, #aaa); flex: 0 0 auto; }
+    .player-name { font-weight: 800; font-size: 1rem; }
+    .player-instrument, .player-state { font-size: .8rem; color: var(--muted); }
+    .player-state { margin: 10px 0 13px; }
+    .player-state.ready { color: var(--green); }
+    .player-score-line { display: flex; justify-content: space-between; color: var(--muted); font-size: .82rem; }
+    .player-score-line strong { color: var(--ink); }
+    .empty-state { color: #777b8b; }
+    .join-panel { display: flex; flex-direction: column; align-items: center; text-align: center; }
+    .qr-wrap { display: grid; place-items: center; width: 210px; height: 210px; margin: 5px auto 15px; padding: 10px; border-radius: 14px; background: #fff; }
+    #qr-code { display: grid; place-items: center; width: 190px; height: 190px; }
+    #qr-code canvas, #qr-code img { display: block; width: 190px; height: 190px; }
+    .join-instruction { margin: 0 0 4px; font-weight: 800; }
+    .room-url { max-width: 100%; overflow-wrap: anywhere; color: var(--muted); font-size: .78rem; }
+    .host-actions { width: 100%; display: grid; gap: 9px; margin-top: 14px; }
+    .seed-label { color: var(--muted); font-size: .8rem; text-align: left; }
+    .seed-label input { width: 100%; margin-top: 5px; padding: 9px 11px; border: 1px solid var(--line); border-radius: 10px; background: #12141c; color: var(--ink); }
+    .button { border: 0; border-radius: 12px; padding: 12px 16px; background: var(--accent); color: #1c1730; cursor: pointer; font-weight: 850; transition: transform .12s, filter .12s; }
+    .button:hover { filter: brightness(1.08); }
+    .button:active { transform: scale(.985); }
+    .button:disabled { cursor: not-allowed; filter: grayscale(.65); opacity: .55; }
+    .button.secondary { border: 1px solid var(--line); background: #252938; color: var(--ink); }
+    .small-note, .error { margin: 8px 0 0; color: var(--muted); font-size: .8rem; }
+    .error { color: #ff8c88; }
+
+    .chain-panel { margin-top: 18px; padding: 18px 22px 20px; }
+    .chain { display: flex; align-items: center; justify-content: space-around; gap: 8px; padding: 10px 0 4px; }
+    .chain-person { display: grid; justify-items: center; gap: 4px; min-width: 70px; }
+    .chain-person .mascot { width: 54px; height: 54px; }
+    .chain-name { max-width: 90px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; color: var(--muted); }
+    .wire { flex: 1; position: relative; height: 2px; min-width: 16px; background: #414657; }
+    .wire:after { content: ""; position: absolute; width: 9px; height: 9px; top: -4px; right: 0; border-top: 2px solid #6c7180; border-right: 2px solid #6c7180; transform: rotate(45deg); }
+    .wire.pulse { background: var(--yellow); box-shadow: 0 0 11px var(--yellow); }
+    .wire.pulse:after { border-color: var(--yellow); }
+    .battery-block { width: 92px; }
+    .battery-shell { height: 38px; padding: 4px; border: 2px solid #aeb2c0; border-radius: 7px; position: relative; }
+    .battery-shell:after { content: ""; position: absolute; right: -7px; top: 10px; width: 4px; height: 14px; border-radius: 0 3px 3px 0; background: #aeb2c0; }
+    .battery-fill { width: 0; height: 100%; border-radius: 3px; background: linear-gradient(90deg, #ffbe52, #ffe58d); transition: width .3s; }
+    .battery-label { margin-top: 5px; text-align: center; font-size: .74rem; color: var(--muted); }
+    .progress-wrap { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; margin-top: 20px; color: var(--muted); font-size: .82rem; }
+    .progress-track { height: 8px; overflow: hidden; border-radius: 99px; background: #303443; }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--accent), var(--green)); transition: width .2s linear; }
+    .countdown { margin: 12px 0 0; text-align: center; color: var(--yellow); font-size: 2rem; font-weight: 900; }
+
+    .phone-page { min-height: 100dvh; width: min(540px, 100%); margin: auto; padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)); }
+    .phone-page.game-active { height: 100dvh; min-height: 0; display: flex; flex-direction: column; }
+    .phone-header { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 4px 2px 14px; }
+    .phone-header h1 { font-size: 1.45rem; margin: 0; }
+    .phone-card { padding: 22px; }
+    .join-form { display: grid; gap: 13px; }
+    .join-form label { text-align: left; color: var(--muted); font-size: .85rem; }
+    .join-form input { width: 100%; margin-top: 5px; padding: 13px; border: 1px solid #43485a; border-radius: 11px; outline: none; background: #12141c; color: var(--ink); }
+    .join-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px #b6a2ff22; }
+    .assigned { text-align: center; }
+    .assigned .mascot { width: 100px; height: 100px; margin: 2px auto 10px; }
+    .assigned h2 { margin-bottom: 3px; font-size: 1.5rem; }
+    .assigned .instrument { margin-bottom: 18px; color: var(--muted); }
+    .sync-state { color: var(--muted); font-size: .82rem; margin: 0 0 12px; }
+    .phone-game { display: flex; flex-direction: column; height: calc(100dvh - 100px); min-height: 430px; }
+    .game-active .phone-game { flex: 1; height: auto; min-height: 0; }
+    .game-info { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 0 3px 10px; }
+    .game-info strong { display: block; font-size: .94rem; }
+    .game-info small { color: var(--muted); }
+    .scorebox { text-align: right; }
+    .scorebox strong { font-size: 1.25rem; font-variant-numeric: tabular-nums; }
+    .phone-battery { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 9px; margin: 0 3px 10px; color: var(--muted); font-size: .78rem; }
+    .phone-battery .battery-shell { height: 19px; padding: 2px; }
+    .phone-battery .battery-shell:after { top: 4px; height: 7px; }
+    .lane { position: relative; flex: 1; min-height: 170px; overflow: hidden; border: 1px solid #ffffff1b; border-radius: 18px; background: linear-gradient(180deg, #171a24, #1e2230); touch-action: none; }
+    .lane:before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(to right, transparent 0, transparent calc(25% - 1px), #ffffff22 calc(25% - 1px), #ffffff22 25%); pointer-events: none; }
+    .lane-note { position: absolute; width: calc(25% - 8px); display: flex; justify-content: center; align-items: end; padding-bottom: 5px; border: 1px solid #ffffff88; border-radius: 9px; transform: translate(-50%, -100%); box-shadow: 0 4px 18px color-mix(in srgb, var(--player-color) 45%, transparent); color: #11131b; font-size: 1.15rem; font-weight: 900; }
+    .hit-line { position: absolute; z-index: 1; left: 0; right: 0; bottom: 15%; height: 3px; border-radius: 3px; background: var(--player-color, var(--accent)); box-shadow: 0 0 15px color-mix(in srgb, var(--player-color) 65%, transparent); pointer-events: none; }
+    .feedback { position: absolute; z-index: 3; left: 0; right: 0; top: 42%; text-align: center; font-size: 1.5rem; font-weight: 950; text-shadow: 0 2px 12px #000; pointer-events: none; opacity: 0; transform: scale(.9); transition: opacity .12s, transform .12s; }
+    .feedback.show { opacity: 1; transform: scale(1); }
+    .feedback.perfect { color: var(--yellow); }
+    .feedback.good { color: var(--green); }
+    .feedback.okay { color: var(--blue); }
+    .feedback.miss { color: #ff8884; }
+    .tap-buttons { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; margin-top: 8px; }
+    .tap-button { width: 100%; min-height: 78px; padding: 0; border: 1px solid color-mix(in srgb, var(--player-color) 80%, white 10%); border-radius: 14px; background: color-mix(in srgb, var(--player-color) 19%, #1b1e29); box-shadow: inset 0 1px 0 #ffffff17, 0 9px 24px #0002; color: var(--ink); font-size: 1.5rem; font-weight: 900; touch-action: manipulation; -webkit-tap-highlight-color: transparent; -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+    .tap-button:active { background: color-mix(in srgb, var(--player-color) 40%, #1b1e29); transform: scale(.99); }
+    .combo { min-height: 23px; color: var(--muted); font-size: .85rem; text-align: center; margin: 5px 0 0; }
+    .result-panel { padding: 26px; text-align: center; }
+    .result-title { font-size: clamp(2rem, 8vw, 3.1rem); margin: 8px 0; }
+    .town { display: flex; align-items: end; justify-content: center; gap: 7px; height: 90px; margin: 18px 0 8px; }
+    .building { display: flex; align-items: center; justify-content: center; width: 48px; height: var(--height, 58px); border-radius: 4px 4px 0 0; background: #262a37; border: 1px solid #3c4152; }
+    .windows { display: grid; grid-template-columns: repeat(2, 6px); gap: 8px; }
+    .windows i { width: 6px; height: 7px; background: #13151c; }
+    .town.lit .windows i { background: var(--yellow); box-shadow: 0 0 8px #ffd35f88; }
+    .results-list { display: grid; gap: 8px; margin: 20px 0 0; padding: 0; list-style: none; text-align: left; }
+    .results-list li { display: flex; justify-content: space-between; gap: 10px; padding: 10px 12px; border-radius: 10px; background: #151822; color: var(--muted); }
+    .results-list strong { color: var(--ink); }
+    .footer-note { margin: 22px 0 0; text-align: center; color: #737789; font-size: .75rem; }
+
+    @media (max-width: 760px) {
+      .page { padding: 22px 14px 32px; }
+      .host-layout { grid-template-columns: 1fr; }
+      .join-panel { order: -1; }
+      .qr-wrap { width: 178px; height: 178px; }
+      #qr-code { width: 158px; height: 158px; }
+      .topbar { margin-bottom: 20px; }
+    }
+    @media (max-width: 420px) {
+      .badge { font-size: .72rem; padding: 7px 9px; }
+      .player-card { padding: 12px; }
+      .player-card .mascot { width: 42px; height: 42px; }
+      .chain { gap: 4px; }
+      .chain-person { min-width: 48px; }
+      .chain-person .mascot { width: 42px; height: 42px; }
+      .battery-block { width: 67px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *:before, *:after { scroll-behavior: auto !important; transition-duration: .01ms !important; animation-duration: .01ms !important; }
+    }
+  </style>
+</head>
+<body>
+  <template id="mascot-template">
+    <svg class="mascot" viewBox="0 0 64 64" aria-hidden="true">
+      <path fill="currentColor" d="M12 16h40v29H43v9h-8v-9h-7v9h-8v-9h-8V16ZM12 25H4v12h8V25Zm48 0h-8v12h8V25Z"/>
+      <path fill="#171923" d="M21 25h5v7h-5zm17 0h5v7h-5z"/>
+      <path fill="currentColor" d="M17 11h30v5H17z"/>
+    </svg>
+  </template>
+
+  <main id="host-view" class="page hidden">
+    <header class="topbar">
+      <div>
+        <div class="eyebrow">Musical electron chain</div>
+        <h1>Invisible Heroes</h1>
+        <p class="subtitle">Four tiny heroes. One big charge.</p>
+      </div>
+      <div class="badge" id="host-status"><span class="dot"></span><span>Connecting to room service…</span></div>
+    </header>
+
+    <section class="host-layout">
+      <div class="panel host-main">
+        <div class="section-heading">
+          <h2>Meet the colony</h2>
+          <span class="badge" id="song-status"><span class="dot"></span><span>Loading song…</span></span>
+        </div>
+        <div class="players-grid" id="host-players"></div>
+      </div>
+      <aside class="panel join-panel" id="join-panel">
+        <div class="eyebrow">Your team needs you</div>
+        <div class="qr-wrap">        <div id="qr-code"></div></div>
+        <p class="join-instruction" id="qr-prompt">Scan to join</p>
+        <p class="room-url" id="room-url">Creating a private room…</p>
+        <div class="host-actions">
+          <button class="button" id="enable-audio">Enable host sound</button>
+          <p class="small-note" id="audio-note">Tap once to allow the song to play when the team is ready.</p>
+          <label class="seed-label">Simulated player seed
+            <input id="bot-seed" type="number" min="0" max="4294967295" step="1" value="2026">
+          </label>
+          <button class="button secondary" id="start-with-bots" disabled>Start with simulated players</button>
+          <p class="small-note" id="start-note">Enable sound and have joined players press Ready. Empty slots will be simulated.</p>
+          <p class="error hidden" id="host-error"></p>
+        </div>
+      </aside>
+    </section>
+
+    <section class="panel chain-panel">
+      <div class="section-heading">
+        <h2>The electron chain</h2>
+        <span class="badge" id="team-accuracy">Team accuracy —</span>
+      </div>
+      <div class="chain" id="chain"></div>
+      <div class="progress-wrap">
+        <span>Song</span>
+        <div class="progress-track"><div class="progress-fill" id="song-progress"></div></div>
+        <span id="song-time">0:00</span>
+      </div>
+      <div class="countdown hidden" id="host-countdown"></div>
+    </section>
+
+    <section class="panel result-panel hidden" id="host-result">
+      <div class="eyebrow">The colony's song</div>
+      <h2 class="result-title" id="result-title"></h2>
+      <p class="subtitle" id="result-summary"></p>
+      <div class="town" id="town">
+        <div class="building" style="--height:52px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:70px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:60px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:82px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:57px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <ol class="results-list" id="results-list"></ol>
+    </section>
+    <p class="footer-note">Tap with the rhythm. Every little spark helps.</p>
+  </main>
+
+  <main id="phone-view" class="phone-page hidden">
+    <header class="phone-header">
+      <div><div class="eyebrow">Musical electron chain</div><h1>Invisible Heroes</h1></div>
+      <div class="badge" id="phone-status"><span class="dot"></span><span>Not connected</span></div>
+    </header>
+
+    <section class="panel phone-card" id="join-card">
+      <h2>Join your colony</h2>
+      <p class="subtitle">Choose a name, then get ready to send some sparks.</p>
+      <form class="join-form" id="join-form">
+        <label>Your name
+          <input id="player-name" maxlength="18" autocomplete="nickname" placeholder="Microbe name" required>
+        </label>
+        <button class="button" id="join-button" type="submit">Join the colony</button>
+        <p class="error hidden" id="phone-error"></p>
+      </form>
+    </section>
+
+    <section class="panel phone-card assigned hidden" id="assigned-card">
+      <div id="assigned-mascot"></div>
+      <h2 id="assigned-name">Player</h2>
+      <p class="instrument" id="assigned-instrument"></p>
+      <p class="sync-state" id="sync-state">Synchronizing your clock…</p>
+      <button class="button" id="ready-button" disabled>Ready</button>
+    </section>
+
+    <section class="hidden" id="phone-countdown-card">
+      <div class="panel result-panel">
+        <div class="eyebrow">All heroes ready</div>
+        <div class="countdown" id="phone-countdown">5</div>
+        <p class="subtitle">Get your tapping finger ready!</p>
+      </div>
+    </section>
+
+    <section class="phone-game hidden" id="phone-game">
+      <div class="game-info">
+        <div><strong id="game-player">Player</strong><small id="game-instrument">Instrument</small></div>
+        <div class="scorebox"><strong id="phone-score">0</strong><small> points</small></div>
+      </div>
+      <div class="phone-battery">
+        <span>Battery</span>
+        <div class="battery-shell"><div class="battery-fill" id="phone-battery-fill"></div></div>
+        <strong id="phone-battery-label">0%</strong>
+      </div>
+      <div class="lane" id="lane">
+        <div class="feedback" id="feedback"></div>
+        <div class="hit-line"></div>
+      </div>
+      <div class="tap-buttons" aria-label="Tap the matching number">
+        <button class="tap-button" data-lane="0" aria-label="Tap lane 1">1</button>
+        <button class="tap-button" data-lane="1" aria-label="Tap lane 2">2</button>
+        <button class="tap-button" data-lane="2" aria-label="Tap lane 3">3</button>
+        <button class="tap-button" data-lane="3" aria-label="Tap lane 4">4</button>
+      </div>
+      <p class="combo" id="phone-combo"></p>
+    </section>
+
+    <section class="panel result-panel hidden" id="phone-result">
+      <div class="eyebrow">Your colony's song</div>
+      <h2 class="result-title" id="phone-result-title"></h2>
+      <p class="subtitle" id="phone-result-summary"></p>
+      <div class="town" id="phone-town">
+        <div class="building" style="--height:52px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:70px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:60px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:82px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+        <div class="building" style="--height:57px"><div class="windows"><i></i><i></i><i></i><i></i></div></div>
+      </div>
+      <ol class="results-list" id="phone-results-list"></ol>
+    </section>
+    <p class="footer-note" id="phone-footer">Waiting for your invitation.</p>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script type="module">
+    import { Midi } from "https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/+esm";
+    import * as Tone from "https://esm.sh/tone@15.1.22";
+
+    const COLORS = ["#ff6b68", "#68aaff", "#63dda0", "#ffd35f"];
+    const COLOR_NAMES = ["red", "blue", "green", "yellow"];
+    const INSTRUMENTS = [
+      { midiInstrument: "standard kit", label: "Kick drum", kind: "drums" },
+      { midiInstrument: "electric bass (finger)", label: "Bass", kind: "bass" },
+      { midiInstrument: "slap bass 1", label: "Guitar", kind: "guitar" },
+      { midiInstrument: "acoustic guitar (nylon)", label: "Chords", kind: "chords" }
+    ];
+    const SONG_FILE = "./Daft-Punk-ft-Pharell-Get-Lucky-samcera-20201004170621-nonstop2k.com.mid";
+    const LOOPS = 4;
+    const TRAVEL_MS = 1750;
+    const HIT_WINDOWS = [
+      { max: 60, points: 100, label: "Perfect", cls: "perfect" },
+      { max: 130, points: 70, label: "Good", cls: "good" },
+      { max: 200, points: 30, label: "Okay", cls: "okay" }
+    ];
+    const params = new URLSearchParams(location.search);
+    const roomId = params.get("room");
+    const isPlayer = Boolean(roomId);
+    const $ = (id) => document.getElementById(id);
+    const mascotTemplate = $("mascot-template");
+
+    function mascot(color, extraClass = "") {
+      const svg = mascotTemplate.content.firstElementChild.cloneNode(true);
+      svg.style.color = color || "currentColor";
+      if (extraClass) svg.classList.add(extraClass);
+      return svg;
+    }
+
+    function setBadge(node, text, good = false) {
+      node.querySelector("span:last-child").textContent = text;
+      node.querySelector(".dot").classList.toggle("good", good);
+    }
+
+    function showError(node, text) {
+      node.textContent = text;
+      node.classList.remove("hidden");
+    }
+
+    function formatTime(seconds) {
+      const safe = Math.max(0, Math.floor(seconds));
+      return `${Math.floor(safe / 60)}:${String(safe % 60).padStart(2, "0")}`;
+    }
+
+    let song = null;
+    let midiError = null;
+    const midiReady = fetch(SONG_FILE)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Could not load the MIDI file (${response.status}).`);
+        return response.arrayBuffer();
+      })
+      .then((buffer) => {
+        const midi = new Midi(buffer);
+        const selected = INSTRUMENTS.map((part) => {
+          const track = midi.tracks.find((candidate) =>
+            candidate.notes.length > 0 &&
+            candidate.instrument.name.trim().toLowerCase() === part.midiInstrument
+          );
+          if (!track || !track.notes.length) throw new Error(`The MIDI is missing its ${part.track} part.`);
+          const rawEvents = [];
+          for (const note of track.notes.slice().sort((a, b) => a.time - b.time)) {
+            const existing = rawEvents.at(-1);
+            if (existing && note.time - existing.time <= 0.075) {
+              existing.notes.push(note);
+            } else {
+              rawEvents.push({ time: note.time, notes: [note] });
+            }
+          }
+          const events = [];
+          for (const event of rawEvents) {
+            const previous = events.at(-1);
+            if (previous && event.time - previous.time < 0.18) {
+              previous.notes.push(...event.notes);
+            } else {
+              events.push(event);
+            }
+          }
+          return {
+            ...part,
+            programName: track.instrument.name,
+            notes: track.notes,
+            events: events.map((event, id) => ({
+              id,
+              time: event.time,
+              notes: event.notes.map((note) => ({
+                midi: note.midi,
+                velocity: note.velocity,
+                duration: note.duration,
+                offset: note.time - event.time
+              }))
+            }))
+          };
+        });
+        const duration = Math.max(...selected.map((part) =>
+          Math.max(...part.notes.map((note) => note.time + note.duration))
+        ));
+        if (!Number.isFinite(duration) || duration <= 0) throw new Error("The selected MIDI parts have no playable duration.");
+        song = { parts: selected, duration, loops: LOOPS };
+        $("song-status").querySelector("span:last-child").textContent = `MIDI ready · ${duration.toFixed(1)} sec × ${LOOPS}`;
+        $("song-status").querySelector(".dot").classList.add("good");
+        return song;
+      })
+      .catch((error) => {
+        midiError = error;
+        $("song-status").querySelector("span:last-child").textContent = `Song could not load: ${error.message}`;
+        showError($("host-error"), error.message);
+        $("song-status").querySelector(".dot").classList.remove("good");
+        throw error;
+      });
+
+    // Keep an explicit rejection handler attached while the room boots.
+    midiReady.catch(() => {});
+
+    function renderHostCards(players) {
+      const grid = $("host-players");
+      grid.replaceChildren();
+      players.forEach((player, slot) => {
+        const card = document.createElement("article");
+        card.className = "player-card";
+        card.style.setProperty("--player-color", COLORS[slot]);
+        const top = document.createElement("div");
+        top.className = "player-card-top";
+        top.append(mascot(COLORS[slot]));
+        const text = document.createElement("div");
+        if (player) {
+          const name = document.createElement("div");
+          name.className = "player-name";
+          name.textContent = player.name;
+          const instrument = document.createElement("div");
+          instrument.className = "player-instrument";
+          instrument.textContent = INSTRUMENTS[slot].label;
+          text.append(name, instrument);
+        } else {
+          const name = document.createElement("div");
+          name.className = "player-name empty-state";
+          name.textContent = `Player ${slot + 1}`;
+          const instrument = document.createElement("div");
+          instrument.className = "player-instrument";
+          instrument.textContent = INSTRUMENTS[slot].label;
+          text.append(name, instrument);
+        }
+        top.append(text);
+        card.append(top);
+        const state = document.createElement("p");
+        state.className = `player-state${player?.ready ? " ready" : ""}`;
+        state.textContent = player ? (player.simulated ? "Simulated player" : player.connected ? (player.ready ? "Ready" : "Joined · not ready") : "Disconnected · playing on") : "Waiting for a hero";
+        card.append(state);
+        const scoreLine = document.createElement("div");
+        scoreLine.className = "player-score-line";
+        const points = document.createElement("span");
+        points.textContent = `${player?.score || 0} pts`;
+        const accuracy = document.createElement("strong");
+        accuracy.textContent = `${player?.maxScore ? Math.round(player.score / player.maxScore * 100) : 0}%`;
+        scoreLine.append(points, accuracy);
+        card.append(scoreLine);
+        grid.append(card);
+      });
+    }
+
+    let hostPeer = null;
+    let hostPeerReady = false;
+    let audioUnlocked = false;
+    let gameState = "waiting";
+    let countdownTimer = null;
+    let hostStartAt = null;
+    let gameEndTimer = null;
+    let hostRaf = 0;
+    const hostPlayers = [null, null, null, null];
+    const pendingJoins = new WeakSet();
+    let synths = null;
+    let simulatedEvents = [];
+    let simulatedEventIndex = 0;
+
+    function makeLanePattern(count) {
+      const random = crypto.getRandomValues(new Uint32Array(count));
+      const lanes = [];
+      for (const value of random) {
+        const previous = lanes.at(-1);
+        const choice = value % (previous === undefined ? 4 : 3);
+        lanes.push(previous === undefined || choice < previous ? choice : choice + 1);
+      }
+      return lanes;
+    }
+
+    function batteryCharge() {
+      const totalMax = hostPlayers.reduce((sum, player) => sum + (player?.maxScore || 0), 0);
+      const totalScore = hostPlayers.reduce((sum, player) => sum + (player?.score || 0), 0);
+      return totalMax ? Math.min(100, totalScore / totalMax * 100) : 0;
+    }
+
+    function broadcastScores() {
+      broadcast({ type: "scores", players: playerSummary(), battery: batteryCharge() });
+    }
+
+    function playerSummary() {
+      return hostPlayers.map((player) => player && ({
+        slot: player.slot,
+        name: player.name,
+        ready: player.ready,
+        connected: player.connected,
+        simulated: Boolean(player.simulated),
+        score: player.score,
+        accuracy: player.maxScore ? Math.round((player.score / player.maxScore) * 100) : 0
+      }));
+    }
+
+    function broadcast(message) {
+      for (const player of hostPlayers) {
+        if (player?.connected && player.conn?.open) player.conn.send(message);
+      }
+    }
+
+    function refreshHost() {
+      renderHostCards(hostPlayers);
+      const count = hostPlayers.filter((player) => player?.connected).length;
+      const ready = hostPlayers.filter((player) => player?.connected && player.ready).length;
+      if (gameState === "waiting") {
+        setBadge($("host-status"), hostPeerReady ? `${count}/4 heroes connected · ${ready} ready` : "Connecting to room service…", hostPeerReady);
+        $("qr-prompt").textContent = count === 4 ? "All heroes have joined" : "Scan to join";
+        $("join-panel").classList.remove("hidden");
+        const seed = $("bot-seed").valueAsNumber;
+        const validSeed = Number.isInteger(seed) && seed >= 0 && seed <= 4294967295;
+        const playersReady = hostPlayers.every((player) => !player || (player.connected && player.ready));
+        $("start-with-bots").disabled = !song || !audioUnlocked || !playersReady || count >= 4 || !validSeed;
+        $("start-note").textContent = !validSeed
+          ? "Enter a whole-number seed from 0 to 4294967295."
+          : !audioUnlocked || !song
+            ? "Enable sound and wait for the song to load."
+            : !playersReady
+              ? "All joined players must press Ready before starting."
+              : "Empty slots will be simulated. The same seed reproduces their performance.";
+      }
+      hostPlayers.forEach((player, slot) => {
+        $(`chain-name-${slot}`).textContent = player?.name || `Microbe ${slot + 1}`;
+      });
+    }
+
+    function buildChain() {
+      const chain = $("chain");
+      chain.replaceChildren();
+      for (let slot = 0; slot < 4; slot += 1) {
+        const person = document.createElement("div");
+        person.className = "chain-person";
+        person.style.color = COLORS[slot];
+        person.append(mascot(COLORS[slot]));
+        const label = document.createElement("span");
+        label.className = "chain-name";
+        label.id = `chain-name-${slot}`;
+        label.textContent = `Microbe ${slot + 1}`;
+        person.append(label);
+        chain.append(person);
+        if (slot < 3) {
+          const wire = document.createElement("div");
+          wire.className = "wire";
+          wire.id = `wire-${slot}`;
+          chain.append(wire);
+        }
+      }
+      const wire = document.createElement("div");
+      wire.className = "wire";
+      wire.id = "wire-3";
+      chain.append(wire);
+      const battery = document.createElement("div");
+      battery.className = "battery-block";
+      battery.innerHTML = '<div class="battery-shell"><div class="battery-fill" id="battery-fill"></div></div><div class="battery-label" id="battery-label">0% charge</div>';
+      chain.append(battery);
+    }
+
+    function refreshTeamMeters() {
+      const players = hostPlayers.filter(Boolean);
+      const average = players.length ? Math.round(players.reduce((total, player) => total + (player.maxScore ? player.score / player.maxScore * 100 : 0), 0) / 4) : 0;
+      $("team-accuracy").textContent = `Team accuracy ${average}%`;
+      if (song) {
+        const charge = batteryCharge();
+        $("battery-fill").style.width = `${charge}%`;
+        $("battery-label").textContent = `${Math.round(charge)}% charge`;
+      }
+    }
+
+    function clickPulse(slot) {
+      const wire = $(`wire-${slot}`);
+      if (!wire) return;
+      wire.classList.remove("pulse");
+      void wire.offsetWidth;
+      wire.classList.add("pulse");
+      setTimeout(() => wire.classList.remove("pulse"), 420);
+    }
+
+    function hostTimeline() {
+      if (gameState !== "playing" || !song) return;
+      const elapsed = Math.max(0, (performance.now() - hostStartAt) / 1000);
+      const total = song.duration * song.loops;
+      $("song-progress").style.width = `${Math.min(100, elapsed / total * 100)}%`;
+      $("song-time").textContent = `${formatTime(Math.min(elapsed, total))} / ${formatTime(total)}`;
+      hostRaf = requestAnimationFrame(hostTimeline);
+    }
+
+    function setupSynths() {
+      if (synths) return;
+      synths = [
+        new Tone.MembraneSynth({ pitchDecay: .025, octaves: 4, envelope: { attack: .001, decay: .18, sustain: 0, release: .08 } }).toDestination(),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .01, decay: .12, sustain: .45, release: .16 } }).toDestination(),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .005, decay: .18, sustain: .05, release: .1 } }).toDestination(),
+        new Tone.PolySynth(Tone.Synth, { oscillator: { type: "triangle" }, envelope: { attack: .015, decay: .18, sustain: .25, release: .25 } }).toDestination()
+      ];
+      const volumes = [-7, -5, -12, -11];
+      synths.forEach((synth, index) => { synth.volume.value = volumes[index]; });
+    }
+
+    function playHit(slot, event, expectedAt) {
+      const now = performance.now();
+      const audioNow = Tone.now();
+      for (const note of event.notes) {
+        const time = audioNow + Math.max(0, (expectedAt + note.offset * 1000 - now) / 1000);
+        const pitch = slot === 0 ? "C2" : Tone.Frequency(note.midi, "midi").toFrequency();
+        const duration = slot === 0 ? Math.min(.25, note.duration)
+          : slot === 3 ? Math.min(.8, Math.max(.08, note.duration))
+          : Math.min(.65, Math.max(.06, note.duration));
+        synths[slot].triggerAttackRelease(pitch, duration, time, Math.max(.12, note.velocity));
+      }
+    }
+
+    function tryStartCountdown() {
+      if (gameState !== "waiting" || !song || !audioUnlocked || hostPlayers.some((player) => !player?.connected || !player.ready)) return;
+      gameState = "countdown";
+      hostStartAt = performance.now() + 5000;
+      $("host-countdown").classList.remove("hidden");
+      $("join-panel").classList.add("hidden");
+      $("host-countdown").textContent = "5";
+      broadcast({ type: "countdown", startAt: hostStartAt });
+      countdownTimer = setTimeout(beginGame, 5000);
+      updateCountdown();
+    }
+
+    function startWithSimulatedPlayers() {
+      if (gameState !== "waiting" || !song || !audioUnlocked ||
+          hostPlayers.some((player) => player && (!player.connected || !player.ready))) return;
+      const seed = $("bot-seed").valueAsNumber;
+      if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) {
+        showError($("host-error"), "Enter a whole-number seed from 0 to 4294967295.");
+        return;
+      }
+      hostPlayers.forEach((player, slot) => {
+        if (player) return;
+        hostPlayers[slot] = {
+          slot,
+          name: `Hero ${slot + 1} (bot)`,
+          simulated: true,
+          connected: true,
+          ready: true,
+          score: 0,
+          combo: 0,
+          clockOffset: 0,
+          maxScore: song.parts[slot].events.length * song.loops * 100,
+          lanes: makeLanePattern(song.parts[slot].events.length * song.loops),
+          resolved: new Set()
+        };
+      });
+      prepareSimulatedEvents(seed);
+      refreshHost();
+      tryStartCountdown();
+    }
+
+    function prepareSimulatedEvents(seed) {
+      let state = seed >>> 0;
+      const random = () => {
+        state = (state + 0x6d2b79f5) >>> 0;
+        let value = Math.imul(state ^ (state >>> 15), 1 | state);
+        value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
+        return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
+      };
+      simulatedEvents = [];
+      simulatedEventIndex = 0;
+      for (const player of hostPlayers) {
+        if (!player?.simulated) continue;
+        const events = song.parts[player.slot].events;
+        for (let loop = 0; loop < song.loops; loop += 1) {
+          for (const event of events) {
+            const missed = random() < 0.04;
+            const offset = (random() + random() - 1) * 150;
+            const expected = (loop * song.duration + event.time) * 1000;
+            simulatedEvents.push({
+              slot: player.slot,
+              eventId: loop * events.length + event.id,
+              at: expected + (missed ? 200 : offset),
+              missed
+            });
+          }
+        }
+      }
+      simulatedEvents.sort((a, b) => a.at - b.at);
+    }
+
+    function resolveSimulatedEvents(now) {
+      while (simulatedEventIndex < simulatedEvents.length &&
+             hostStartAt + simulatedEvents[simulatedEventIndex].at <= now) {
+        const event = simulatedEvents[simulatedEventIndex++];
+        const player = hostPlayers[event.slot];
+        if (event.missed) {
+          player.resolved.add(event.eventId);
+          player.combo = 0;
+          refreshHost();
+          broadcastScores();
+        } else {
+          acceptTap(player, { eventId: event.eventId, lane: player.lanes[event.eventId], clientTime: hostStartAt + event.at });
+        }
+      }
+    }
+
+    function updateCountdown() {
+      if (gameState !== "countdown") return;
+      const remaining = Math.max(0, Math.ceil((hostStartAt - performance.now()) / 1000));
+      $("host-countdown").textContent = remaining ? String(remaining) : "Go!";
+      if (remaining > 0) setTimeout(updateCountdown, Math.min(250, hostStartAt - performance.now()));
+    }
+
+    function cancelCountdown() {
+      if (gameState !== "countdown") return;
+      clearTimeout(countdownTimer);
+      gameState = "waiting";
+      hostStartAt = null;
+      $("host-countdown").classList.add("hidden");
+      $("join-panel").classList.remove("hidden");
+      hostPlayers.forEach((player, slot) => {
+        if (player?.simulated) hostPlayers[slot] = null;
+        else if (player) player.ready = false;
+      });
+      simulatedEvents = [];
+      broadcast({ type: "countdown-cancelled", players: playerSummary() });
+      refreshHost();
+    }
+
+    function beginGame() {
+      if (gameState !== "countdown") return;
+      gameState = "playing";
+      $("host-countdown").classList.add("hidden");
+      $("join-panel").classList.add("hidden");
+      $("host-result").classList.add("hidden");
+      $("host-status").querySelector("span:last-child").textContent = "The colony is playing";
+      $("host-status").querySelector(".dot").classList.add("good");
+      $("song-progress").style.width = "0%";
+      $("song-time").textContent = `0:00 / ${formatTime(song.duration * song.loops)}`;
+      for (const player of hostPlayers) {
+        player.score = 0;
+        player.combo = 0;
+        player.resolved = new Set();
+      }
+      refreshHost();
+      refreshTeamMeters();
+      setupSynths();
+      broadcast({ type: "start", startAt: hostStartAt, duration: song.duration, loops: song.loops });
+      hostTimeline();
+      gameEndTimer = setTimeout(finishGame, song.duration * song.loops * 1000 + 1450);
+    }
+
+    function resolveMisses() {
+      if (gameState !== "playing" || !song) return;
+      const now = performance.now();
+      resolveSimulatedEvents(now);
+      let updated = false;
+      for (const player of hostPlayers) {
+        if (!player) continue;
+        for (let loop = 0; loop < song.loops; loop += 1) {
+          for (const event of song.parts[player.slot].events) {
+            const id = loop * song.parts[player.slot].events.length + event.id;
+            if (player.resolved.has(id)) continue;
+            const expected = hostStartAt + (loop * song.duration + event.time) * 1000;
+            if (now > expected + 1200) {
+              player.resolved.add(id);
+              player.combo = 0;
+              player.conn?.open && player.conn.send({ type: "judgement", eventId: id, label: "Miss", cls: "miss", score: player.score, combo: player.combo });
+              updated = true;
+            }
+          }
+        }
+      }
+      if (updated) {
+        refreshHost();
+        refreshTeamMeters();
+        broadcastScores();
+      }
+    }
+
+    function timingFor(delta) {
+      for (const window of HIT_WINDOWS) {
+        if (Math.abs(delta) <= window.max) return window;
+      }
+      return { points: 0, label: "Miss", cls: "miss" };
+    }
+
+    function acceptTap(player, data) {
+      if (gameState !== "playing" || !song || !Number.isInteger(data.eventId) ||
+          !Number.isInteger(data.lane) || data.lane < 0 || data.lane > 3 || !Number.isFinite(data.clientTime)) return;
+      const eventCount = song.parts[player.slot].events.length;
+      const maxEvents = eventCount * song.loops;
+      if (data.eventId < 0 || data.eventId >= maxEvents || player.resolved.has(data.eventId)) return;
+      const loop = Math.floor(data.eventId / eventCount);
+      const event = song.parts[player.slot].events[data.eventId % eventCount];
+      const expectedAt = hostStartAt + (loop * song.duration + event.time) * 1000;
+      const tapAt = data.clientTime + player.clockOffset;
+      const timing = data.lane === player.lanes[data.eventId]
+        ? timingFor(tapAt - expectedAt)
+        : { points: 0, label: "Miss", cls: "miss" };
+      player.resolved.add(data.eventId);
+      if (timing.points) player.combo += 1;
+      else player.combo = 0;
+      player.score += timing.points;
+      if (timing.points) {
+        playHit(player.slot, event, expectedAt);
+        clickPulse(player.slot);
+      }
+      if (player.conn?.open) {
+        player.conn.send({
+          type: "judgement",
+          eventId: data.eventId,
+          label: timing.label,
+          cls: timing.cls,
+          score: player.score,
+          combo: player.combo
+        });
+      }
+      broadcastScores();
+      refreshHost();
+      refreshTeamMeters();
+    }
+
+    function finishGame() {
+      if (gameState !== "playing") return;
+      gameState = "finished";
+      cancelAnimationFrame(hostRaf);
+      clearInterval(missTimer);
+      $("song-progress").style.width = "100%";
+      $("song-time").textContent = `${formatTime(song.duration * song.loops)} / ${formatTime(song.duration * song.loops)}`;
+      const results = playerSummary();
+      const exactTeamAccuracy = hostPlayers.reduce((sum, player) => sum + player.score / player.maxScore * 100, 0) / 4;
+      const teamAccuracy = Math.round(exactTeamAccuracy * 10) / 10;
+      const won = exactTeamAccuracy >= 70;
+      $("result-title").textContent = won ? "The Colony Is Alive!" : "Blackout!";
+      $("result-summary").textContent = `Your team reached ${teamAccuracy}% accuracy. ${won ? "The town is glowing with life!" : "Every spark counts—give it another go."}`;
+      $("town").classList.toggle("lit", won);
+      const list = $("results-list");
+      list.replaceChildren();
+      results.filter(Boolean).sort((a, b) => b.accuracy - a.accuracy || b.score - a.score).forEach((player, index) => {
+        const row = document.createElement("li");
+        const name = document.createElement("strong");
+        name.textContent = `${index + 1}. ${player.name}`;
+        name.style.color = COLORS[player.slot];
+        const score = document.createElement("span");
+        score.textContent = `${player.accuracy}% · ${player.score} pts`;
+        row.append(name, score);
+        list.append(row);
+      });
+      $("host-result").classList.remove("hidden");
+      $("host-status").querySelector("span:last-child").textContent = won ? "Colony powered up!" : "The town is still dark";
+      broadcast({ type: "result", results, teamAccuracy, won });
+    }
+
+    let missTimer = null;
+
+    function makeHost() {
+      $("host-view").classList.remove("hidden");
+      buildChain();
+      $("bot-seed").value = String(crypto.getRandomValues(new Uint32Array(1))[0]);
+      refreshHost();
+      $("enable-audio").addEventListener("click", async () => {
+        try {
+          await Tone.start();
+          setupSynths();
+          audioUnlocked = true;
+          $("enable-audio").textContent = "Sound is ready";
+          $("enable-audio").disabled = true;
+          $("audio-note").textContent = "The song will play automatically when all four heroes are ready.";
+          refreshHost();
+          tryStartCountdown();
+        } catch (error) {
+          showError($("host-error"), `Audio could not start: ${error.message}`);
+        }
+      });
+      $("start-with-bots").addEventListener("click", startWithSimulatedPlayers);
+      $("bot-seed").addEventListener("input", refreshHost);
+
+      midiReady.then(() => {
+        if (hostPeerReady) setBadge($("host-status"), "Room ready · scan to join", true);
+        refreshHost();
+      }).catch(() => {});
+
+      if (!window.Peer) {
+        setBadge($("host-status"), "Room service unavailable");
+        showError($("host-error"), "PeerJS could not load. Check your internet connection and reload.");
+        return;
+      }
+
+      hostPeer = new window.Peer();
+      hostPeer.on("open", (id) => {
+        hostPeerReady = true;
+        const url = `${location.origin}${location.pathname}?room=${encodeURIComponent(id)}`;
+        $("room-url").textContent = url;
+        if (window.QRCode) {
+          new window.QRCode($("qr-code"), {
+            text: url,
+            width: 190,
+            height: 190,
+            colorDark: "#11131b",
+            colorLight: "#ffffff",
+            correctLevel: window.QRCode.CorrectLevel.M
+          });
+        } else {
+          showError($("host-error"), "QR-code library could not load. Share the joining URL shown above.");
+        }
+        setBadge($("host-status"), "Room ready · scan to join", true);
+        refreshHost();
+      });
+      hostPeer.on("connection", (conn) => {
+        conn.on("data", (data) => handleHostMessage(conn, data));
+        conn.on("close", () => handleDisconnect(conn));
+        conn.on("error", (error) => {
+          if (gameState === "waiting" || gameState === "countdown") showError($("host-error"), `Player connection error: ${error.message}`);
+        });
+      });
+      hostPeer.on("error", (error) => {
+        setBadge($("host-status"), "Room connection error");
+        showError($("host-error"), `PeerJS: ${error.message}`);
+      });
+      midiReady.then(tryStartCountdown).catch(() => {});
+    }
+
+    function handleHostMessage(conn, data) {
+      if (!conn.open || !data || typeof data.type !== "string") return;
+      if (data.type === "join") {
+        if (hostPlayers.some((player) => player?.conn === conn)) return;
+        if (gameState !== "waiting") {
+          conn.send({ type: "denied", message: "This game has already started." });
+          setTimeout(() => conn.close(), 250);
+          return;
+        }
+        if (!song) {
+          if (midiError) {
+            conn.send({ type: "denied", message: "The host could not load the song. Ask them to reload the game." });
+            conn.close();
+            return;
+          }
+          if (!pendingJoins.has(conn)) {
+            pendingJoins.add(conn);
+            conn.send({ type: "waiting-song" });
+            midiReady.then(() => handleHostMessage(conn, data)).catch(() => {
+              if (conn.open) {
+                conn.send({ type: "denied", message: "The host could not load the song. Ask them to reload the game." });
+                conn.close();
+              }
+            });
+          }
+          return;
+        }
+        const slot = hostPlayers.findIndex((player) => !player || !player.connected);
+        if (slot < 0) {
+          conn.send({ type: "denied", message: "This colony already has four heroes." });
+          conn.close();
+          return;
+        }
+        const name = String(data.name || "").trim().slice(0, 18);
+        if (!name) {
+          conn.send({ type: "denied", message: "Please enter a name before joining." });
+          conn.close();
+          return;
+        }
+        const player = {
+          slot,
+          name,
+          conn,
+          connected: true,
+          ready: false,
+          score: 0,
+          combo: 0,
+          clockOffset: 0,
+          bestRtt: Infinity,
+          syncSamples: 0,
+          maxScore: song ? song.parts[slot].events.length * LOOPS * 100 : 0,
+          lanes: makeLanePattern(song.parts[slot].events.length * song.loops),
+          resolved: new Set()
+        };
+        hostPlayers[slot] = player;
+        conn.send({
+          type: "assigned",
+          slot,
+          name,
+          color: COLORS[slot],
+          instrument: INSTRUMENTS[slot].label,
+          events: song?.parts[slot].events || [],
+          lanes: player.lanes,
+          duration: song?.duration || 0,
+          loops: LOOPS
+        });
+        refreshHost();
+        return;
+      }
+      const player = hostPlayers.find((candidate) => candidate?.conn === conn);
+      if (!player) return;
+      if (data.type === "ping") {
+        const hostReceive = performance.now();
+        const hostSend = performance.now();
+        conn.send({ type: "pong-request", clientSend: data.clientSend, hostReceive, hostSend });
+      } else if (data.type === "pong") {
+        if (![data.clientSend, data.clientReceive, data.hostReceive, data.hostSend].every(Number.isFinite)) return;
+        const rtt = (data.clientReceive - data.clientSend) - (data.hostSend - data.hostReceive);
+        if (rtt < 0 || rtt > 10000) return;
+        const offset = ((data.hostReceive - data.clientSend) + (data.hostSend - data.clientReceive)) / 2;
+        player.syncSamples += 1;
+        if (rtt <= player.bestRtt) {
+          player.bestRtt = rtt;
+          player.clockOffset = offset;
+          conn.send({ type: "clock", offset, rtt, samples: player.syncSamples });
+        }
+        if (gameState === "waiting" && player.ready && player.syncSamples >= 3) tryStartCountdown();
+      } else if (data.type === "ready") {
+        if (gameState !== "waiting" || !player.connected) return;
+        if (player.syncSamples < 3) {
+          conn.send({ type: "not-synced" });
+          return;
+        }
+        player.ready = true;
+        refreshHost();
+        broadcast({ type: "players", players: playerSummary() });
+        tryStartCountdown();
+      } else if (data.type === "tap") {
+        acceptTap(player, data);
+      }
+    }
+
+    function handleDisconnect(conn) {
+      const slot = hostPlayers.findIndex((player) => player?.conn === conn);
+      if (slot < 0) return;
+      const player = hostPlayers[slot];
+      if (gameState === "waiting" || gameState === "countdown") {
+        hostPlayers[slot] = null;
+        if (gameState === "countdown") cancelCountdown();
+        refreshHost();
+        broadcast({ type: "players", players: playerSummary() });
+      } else {
+        player.connected = false;
+        player.ready = false;
+        refreshHost();
+        broadcast({ type: "players", players: playerSummary() });
+      }
+    }
+
+    let clientPeer = null;
+    let clientConn = null;
+    let clientSlot = -1;
+    let clientColor = COLORS[0];
+    let clientName = "";
+    let clientEvents = [];
+    let clientLanes = [];
+    let clientDuration = 0;
+    let clientLoops = LOOPS;
+    let clientClockOffset = 0;
+    let clientBestRtt = Infinity;
+    let clientSyncSamples = 0;
+    let pingTimer = null;
+    let clientStartAt = null;
+    let clientGameState = "joining";
+    let clientRaf = 0;
+    let clientLocalResolved = new Set();
+    let clientScore = 0;
+    let clientCombo = 0;
+    let feedbackTimer = null;
+    let tapReady = false;
+
+    function makePlayer() {
+      $("phone-view").classList.remove("hidden");
+      const form = $("join-form");
+      const nameInput = $("player-name");
+      const error = $("phone-error");
+      if (!roomId) {
+        showError(error, "This joining link is missing its room code. Scan the host's QR code.");
+        $("join-button").disabled = true;
+        return;
+      }
+      form.addEventListener("submit", (event) => {
+        event.preventDefault();
+        if (!nameInput.value.trim()) return;
+        clientName = nameInput.value.trim().slice(0, 18);
+        $("join-button").disabled = true;
+        $("phone-status").querySelector("span:last-child").textContent = "Connecting…";
+        setBadge($("phone-status"), "Connecting…");
+        if (!window.Peer) {
+          showError(error, "PeerJS could not load. Check your internet connection and try again.");
+          $("join-button").disabled = false;
+          return;
+        }
+        clientPeer = new window.Peer();
+        clientPeer.on("open", () => {
+          clientConn = clientPeer.connect(roomId, { reliable: true });
+          clientConn.on("open", () => clientConn.send({ type: "join", name: clientName }));
+          clientConn.on("data", handlePlayerMessage);
+          clientConn.on("close", () => {
+            if (clientGameState !== "finished") {
+              setBadge($("phone-status"), "Connection lost");
+              showError(error, "Your connection to the host was lost. Ask the host for help.");
+            }
+          });
+          clientConn.on("error", (connectionError) => {
+            setBadge($("phone-status"), "Connection error");
+            showError(error, `Could not connect: ${connectionError.message}`);
+          });
+        });
+        clientPeer.on("error", (peerError) => {
+          setBadge($("phone-status"), "Connection error");
+          showError(error, `PeerJS: ${peerError.message}`);
+          $("join-button").disabled = false;
+        });
+      });
+      document.querySelectorAll(".tap-button").forEach((button) => {
+        button.addEventListener("pointerdown", (event) => {
+          event.preventDefault();
+          handleTap(Number(button.dataset.lane));
+        });
+        button.addEventListener("contextmenu", (event) => event.preventDefault());
+      });
+      document.addEventListener("contextmenu", (event) => event.preventDefault());
+      document.addEventListener("gesturestart", (event) => event.preventDefault());
+      document.addEventListener("touchmove", (event) => {
+        if (clientGameState === "playing") event.preventDefault();
+      }, { passive: false });
+    }
+
+    function startClockSync() {
+      clearInterval(pingTimer);
+      const ping = () => {
+        if (!clientConn?.open) return;
+        clientConn.send({ type: "ping", clientSend: performance.now() });
+      };
+      for (let i = 0; i < 6; i += 1) setTimeout(ping, i * 240);
+      pingTimer = setInterval(ping, 5000);
+    }
+
+    function handlePlayerMessage(data) {
+      if (!data || typeof data.type !== "string") return;
+      if (data.type === "denied") {
+        showError($("phone-error"), data.message || "This colony is full.");
+        setBadge($("phone-status"), "No slot available");
+        $("join-button").disabled = false;
+      } else if (data.type === "assigned") {
+        clientSlot = data.slot;
+        clientName = data.name;
+        clientColor = data.color;
+        clientEvents = data.events;
+        clientLanes = data.lanes;
+        clientDuration = data.duration;
+        clientLoops = data.loops;
+        $("join-card").classList.add("hidden");
+        $("assigned-card").classList.remove("hidden");
+        $("assigned-mascot").replaceChildren(mascot(clientColor));
+        $("assigned-name").textContent = clientName;
+        $("assigned-name").style.color = clientColor;
+        $("assigned-instrument").textContent = data.instrument;
+        $("phone-view").style.setProperty("--player-color", clientColor);
+        $("lane").style.setProperty("--player-color", clientColor);
+        setBadge($("phone-status"), `Player ${clientSlot + 1} · ${data.instrument}`, true);
+        $("game-player").textContent = clientName;
+        $("game-player").style.color = clientColor;
+        $("game-instrument").textContent = data.instrument;
+        startClockSync();
+      } else if (data.type === "pong-request") {
+        const clientReceive = performance.now();
+        const rtt = (clientReceive - data.clientSend) - (data.hostSend - data.hostReceive);
+        const offset = ((data.hostReceive - data.clientSend) + (data.hostSend - clientReceive)) / 2;
+        clientSyncSamples += 1;
+        if (rtt >= 0 && rtt <= clientBestRtt) {
+          clientBestRtt = rtt;
+          clientClockOffset = offset;
+        }
+        clientConn.send({
+          type: "pong",
+          clientSend: data.clientSend,
+          clientReceive,
+          hostReceive: data.hostReceive,
+          hostSend: data.hostSend
+        });
+        updateSyncStatus();
+      } else if (data.type === "clock") {
+        if (Number.isFinite(data.offset)) {
+          clientClockOffset = data.offset;
+          clientBestRtt = data.rtt;
+          clientSyncSamples = Math.max(clientSyncSamples, data.samples);
+          updateSyncStatus();
+        }
+      } else if (data.type === "not-synced") {
+        clientGameState = "waiting";
+        $("ready-button").textContent = "Ready";
+        $("sync-state").textContent = "Clock sync is still warming up — tap Ready in a moment.";
+        updateSyncStatus();
+      } else if (data.type === "waiting-song") {
+        $("phone-status").querySelector("span:last-child").textContent = "Loading song…";
+        $("phone-footer").textContent = "The host is loading the song. Your connection will continue automatically.";
+      } else if (data.type === "countdown") {
+        clientStartAt = data.startAt;
+        clientGameState = "countdown";
+        $("assigned-card").classList.add("hidden");
+        $("phone-countdown-card").classList.remove("hidden");
+        updatePhoneCountdown();
+      } else if (data.type === "countdown-cancelled") {
+        clientGameState = "waiting";
+        $("phone-countdown-card").classList.add("hidden");
+        $("assigned-card").classList.remove("hidden");
+        $("ready-button").disabled = clientSyncSamples < 3;
+        $("ready-button").textContent = "Ready";
+        setBadge($("phone-status"), "Waiting for a replacement");
+      } else if (data.type === "start") {
+        clientStartAt = data.startAt;
+        clientDuration = data.duration;
+        clientLoops = data.loops;
+        clientGameState = "playing";
+        $("phone-view").classList.add("game-active");
+        $("phone-countdown-card").classList.add("hidden");
+        $("phone-game").classList.remove("hidden");
+        $("phone-footer").classList.add("hidden");
+        setBadge($("phone-status"), "Playing", true);
+        renderLane();
+      } else if (data.type === "judgement") {
+        clientScore = data.score;
+        clientCombo = data.combo;
+        $("phone-score").textContent = String(clientScore);
+        $("phone-combo").textContent = clientCombo > 1 ? `${clientCombo}× combo` : "";
+        clientLocalResolved.add(data.eventId);
+        showFeedback(data.label, data.cls);
+      } else if (data.type === "scores") {
+        if (Number.isFinite(data.battery)) {
+          $("phone-battery-fill").style.width = `${data.battery}%`;
+          $("phone-battery-label").textContent = `${Math.round(data.battery)}%`;
+        }
+        const mine = data.players?.[clientSlot];
+        if (mine) {
+          clientScore = mine.score;
+          $("phone-score").textContent = String(clientScore);
+        }
+      } else if (data.type === "players") {
+        const mine = data.players?.[clientSlot];
+        if (mine && !mine.connected) setBadge($("phone-status"), "Host connection lost");
+      } else if (data.type === "result") {
+        showPlayerResult(data);
+      }
+    }
+
+    function updateSyncStatus() {
+      const good = clientSyncSamples >= 3 && Number.isFinite(clientBestRtt);
+      $("sync-state").textContent = good
+        ? `Clock synced · ${Math.round(clientBestRtt)} ms Wi-Fi`
+        : "Synchronizing your clock…";
+      $("ready-button").disabled = !good || clientGameState === "ready";
+    }
+
+    function updatePhoneCountdown() {
+      if (clientGameState !== "countdown" || clientStartAt == null) return;
+      const remaining = Math.max(0, Math.ceil((clientStartAt - (performance.now() + clientClockOffset)) / 1000));
+      $("phone-countdown").textContent = remaining ? String(remaining) : "Go!";
+      if (remaining > 0) setTimeout(updatePhoneCountdown, 120);
+    }
+
+    function eventAt(index) {
+      const count = clientEvents.length;
+      const loop = Math.floor(index / count);
+      const event = clientEvents[index % count];
+      return loop * clientDuration + event.time;
+    }
+
+    function handleTap(lane) {
+      if (clientGameState !== "playing" || !clientConn?.open || clientStartAt == null) return;
+      const clientTime = performance.now();
+      const songTime = (clientTime + clientClockOffset - clientStartAt) / 1000;
+      const max = clientEvents.length * clientLoops;
+      let best = -1;
+      let bestDelta = Infinity;
+      for (let index = 0; index < max; index += 1) {
+        if (clientLocalResolved.has(index)) continue;
+        const delta = Math.abs(eventAt(index) - songTime);
+        if (delta < bestDelta) {
+          best = index;
+          bestDelta = delta;
+        }
+      }
+      if (best >= 0 && bestDelta <= .2) {
+        clientLocalResolved.add(best);
+        clientConn.send({ type: "tap", eventId: best, lane, clientTime });
+      } else {
+        showFeedback("No note", "miss");
+      }
+    }
+
+    function renderLane() {
+      if (clientGameState !== "playing") return;
+      const lane = $("lane");
+      lane.querySelectorAll(".lane-note").forEach((note) => note.remove());
+      const hostNow = performance.now() + clientClockOffset;
+      const songTime = (hostNow - clientStartAt) / 1000;
+      const laneHeight = lane.clientHeight;
+      const hitY = laneHeight * .85;
+      const travel = TRAVEL_MS / 1000;
+      const allEvents = clientEvents.length * clientLoops;
+      const first = Math.max(0, Math.floor(songTime / clientDuration) * clientEvents.length - 1);
+      const last = Math.min(allEvents, first + clientEvents.length + 12);
+      for (let index = first; index < last; index += 1) {
+        if (clientLocalResolved.has(index)) continue;
+        const eventTime = eventAt(index);
+        const untilHit = eventTime - songTime;
+        if (untilHit > travel || untilHit < -.24) continue;
+        const note = document.createElement("div");
+        note.className = "lane-note";
+        note.dataset.lane = String(clientLanes[index]);
+        note.dataset.eventId = String(index);
+        note.textContent = String(clientLanes[index] + 1);
+        note.style.setProperty("--player-color", clientColor);
+        note.style.background = `linear-gradient(180deg, color-mix(in srgb, ${clientColor} 93%, white), ${clientColor})`;
+        note.style.left = `${(clientLanes[index] + .5) * 25}%`;
+        const event = clientEvents[index % clientEvents.length];
+        const duration = Math.max(...event.notes.map((item) => item.duration + item.offset));
+        note.style.height = `${Math.max(38, Math.min(110, duration / travel * hitY))}px`;
+        note.style.top = `${hitY - untilHit / travel * hitY}px`;
+        lane.append(note);
+      }
+      if (songTime >= clientDuration * clientLoops) return;
+      clientRaf = requestAnimationFrame(renderLane);
+    }
+
+    function showFeedback(label, cls) {
+      const feedback = $("feedback");
+      feedback.textContent = label;
+      feedback.className = `feedback show ${cls}`;
+      clearTimeout(feedbackTimer);
+      feedbackTimer = setTimeout(() => feedback.classList.remove("show"), 420);
+    }
+
+    function showPlayerResult(data) {
+      clientGameState = "finished";
+      $("phone-view").classList.remove("game-active");
+      cancelAnimationFrame(clientRaf);
+      $("phone-game").classList.add("hidden");
+      $("assigned-card").classList.add("hidden");
+      $("phone-countdown-card").classList.add("hidden");
+      $("phone-result").classList.remove("hidden");
+      const mine = data.results?.[clientSlot];
+      $("phone-result-title").textContent = data.won ? "The Colony Is Alive!" : "Blackout!";
+      $("phone-result-summary").textContent = `The team reached ${data.teamAccuracy}% accuracy.${mine ? ` Your accuracy: ${mine.accuracy}%.` : ""}`;
+      $("phone-town").classList.toggle("lit", data.won);
+      const list = $("phone-results-list");
+      list.replaceChildren();
+      data.results.filter(Boolean).sort((a, b) => b.accuracy - a.accuracy || b.score - a.score).forEach((player, index) => {
+        const row = document.createElement("li");
+        const name = document.createElement("strong");
+        name.textContent = `${index + 1}. ${player.name}`;
+        name.style.color = COLORS[player.slot];
+        const score = document.createElement("span");
+        score.textContent = `${player.accuracy}% · ${player.score} pts`;
+        row.append(name, score);
+        list.append(row);
+      });
+      setBadge($("phone-status"), "Song complete", true);
+    }
+
+    $("ready-button").addEventListener("click", () => {
+      if (!clientConn?.open || clientSyncSamples < 3) return;
+      clientGameState = "ready";
+      $("ready-button").disabled = true;
+      $("ready-button").textContent = "You're ready!";
+      clientConn.send({ type: "ready" });
+    });
+
+    if (isPlayer) makePlayer();
+    else makeHost();
+
+    midiReady.catch(() => {});
+    if (!isPlayer) {
+      missTimer = setInterval(resolveMisses, 100);
+      midiReady.then(() => {
+        hostPlayers.forEach((player, slot) => {
+          if (player) player.maxScore = song.parts[slot].events.length * LOOPS * 100;
+        });
+        refreshTeamMeters();
+      }).catch(() => {});
+    }
+  </script>
+</body>
+</html>

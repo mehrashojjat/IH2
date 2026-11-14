@@ -1,0 +1,9 @@
+{
+  "name": "invisible-heroes",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A cooperative rhythm game with a local static development server",
+  "scripts": {
+    "start": "node server.js"
+  }
+}
