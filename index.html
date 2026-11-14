@@ -58,6 +58,14 @@
     .player-card:before { content: ""; position: absolute; inset: 0 auto 0 0; width: 3px; background: var(--player-color, var(--line)); opacity: .8; }
     .player-card-top { display: flex; align-items: center; gap: 12px; }
     .mascot { width: 48px; height: 48px; color: var(--player-color, #aaa); flex: 0 0 auto; }
+    .chain-person .mascot.dancing { animation: dance .32s ease-in-out; }
+    @keyframes dance { 50% { transform: translateY(-7px) rotate(7deg); } }
+    .character-list { display: grid; gap: 10px; margin-top: 16px; }
+    .character-choice { display: flex; align-items: center; gap: 12px; width: 100%; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: #161923; color: var(--ink); text-align: left; cursor: pointer; }
+    .character-choice:disabled { opacity: .48; cursor: not-allowed; }
+    .character-choice .mascot { width: 65px; height: 65px; }
+    .character-choice strong, .character-choice small { display: block; }
+    .character-choice small { color: var(--muted); line-height: 1.3; }
     .player-name { font-weight: 800; font-size: 1rem; }
     .player-instrument, .player-state { font-size: .8rem; color: var(--muted); }
     .player-state { margin: 10px 0 13px; }
@@ -174,11 +182,47 @@
   </style>
 </head>
 <body>
-  <template id="mascot-template">
-    <svg class="mascot" viewBox="0 0 64 64" aria-hidden="true">
-      <path fill="currentColor" d="M12 16h40v29H43v9h-8v-9h-7v9h-8v-9h-8V16ZM12 25H4v12h8V25Zm48 0h-8v12h8V25Z"/>
-      <path fill="#171923" d="M21 25h5v7h-5zm17 0h5v7h-5z"/>
-      <path fill="currentColor" d="M17 11h30v5H17z"/>
+  <template id="mascot-0">
+    <svg class="mascot" viewBox="0 0 80 80" aria-hidden="true" shape-rendering="crispEdges">
+      <path fill="#0c0c17" d="M29 5h22v3h6v4h5v6h3v44h-3v5h-5v4h-6v4H29v-4h-6v-4h-5v-5h-3V18h3v-6h5V8h6z"/>
+      <path fill="#ffb400" d="M29 9h22v4h6v6h4v42h-4v5h-6v5H29v-5h-6v-5h-4V19h4v-6h6z"/>
+      <path fill="#ffdf24" d="M32 11h17v4h6v5h3v39h-3v5h-6v4H32v-4h-5v-5h-3V20h3v-5h5z"/>
+      <path stroke="#271015" stroke-width="3" d="M18 28 7 22M18 51 7 56M62 29l11-6M62 52l11 6"/>
+      <path fill="#f3f5ff" d="M7 16h3v5h4v3h-4v4H7v-4H3v-3h4zm65 1h3v4h4v3h-4v4h-3v-4h-4v-3h4z"/>
+      <path fill="#0c0c17" d="M29 31h9v10h-9zm15 0h9v10h-9zM37 45h7v2h-7z"/>
+      <path fill="white" d="M30 32h3v3h-3zm15 0h3v3h-3z"/>
+    </svg>
+  </template>
+  <template id="mascot-1">
+    <svg class="mascot" viewBox="0 0 80 80" aria-hidden="true" shape-rendering="crispEdges">
+      <path fill="#100b19" d="M29 5h14v3h8v3h7v4h6v6h4v8h3v22h-3v7h-5v6h-7v4h-8v4H30v-3h-8v-5h-3v-6h4v-5h6v-4h5v-4h3v-5h-3v-4h-6v-3h-7v-4h-5v-5h-3V19h3v-6h5V9h8z"/>
+      <path fill="#b61970" d="M29 9h14v3h8v3h7v4h5v10h4v22h-3v7h-6v5h-8v4H29v-4h-6v-4h5v-4h7v-4h5v-4h3v-9h-3v-4h-7v-3h-7v-4h-6v-5h-3V20h4v-6h8z"/>
+      <path fill="#fa4b9d" d="M29 11h14v3h8v3h7v5h5v28h-4v7h-7v4h-8v3H31v-4h-4v-2h6v-4h7v-5h5V35h-5v-4h-7v-3h-7v-4h-4v-6h4v-4h3z"/>
+      <path fill="none" stroke="#fa4b9d" stroke-width="2" d="M25 63Q7 75 24 77T52 74Q65 67 75 77"/>
+      <path fill="#0c0c17" d="M25 23h7v9h-7zm16 0h7v9h-7zM34 35h5v2h-5z"/>
+      <path fill="white" d="M26 24h2v3h-2zm16 0h2v3h-2z"/>
+    </svg>
+  </template>
+  <template id="mascot-2">
+    <svg class="mascot" viewBox="0 0 100 80" aria-hidden="true" shape-rendering="crispEdges">
+      <path fill="none" stroke="#0c0c17" stroke-width="15" stroke-linecap="round" stroke-linejoin="round" d="M13 48 24 35 36 27 48 25 60 32 70 46 81 49 91 37"/>
+      <path fill="none" stroke="#62c84a" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" stroke-dasharray="10 2" d="M13 48 24 35 36 27 48 25 60 32 70 46 81 49 91 37"/>
+      <path fill="#0c0c17" d="M5 43h17v5h3v9h-3v4H5v-4H2v-9h3z"/>
+      <path fill="#73dc57" d="M6 45h15v4h2v7h-2v3H6v-3H4v-7h2z"/>
+      <path fill="#0c0c17" d="M7 48h4v5H7zm9 0h4v5h-4zm-4 6h4v2h-4z"/>
+      <path fill="white" d="M8 49h1v2H8zm9 0h1v2h-1z"/>
+      <path fill="#c6ff8c" d="M35 20h4v4h-4zm32 12h4v4h-4zm17 25h4v4h-4z"/>
+    </svg>
+  </template>
+  <template id="mascot-3">
+    <svg class="mascot" viewBox="0 0 80 80" aria-hidden="true" shape-rendering="crispEdges">
+      <path fill="#0c0c17" d="M30 13h20v3h7v4h5v6h4v31h-4v6h-5v5h-7v4H30v-4h-7v-5h-5v-6h-4V26h4v-6h5v-4h7z"/>
+      <path fill="#7533a2" d="M30 17h20v3h7v6h5v30h-5v6h-7v5H30v-5h-7v-6h-5V26h5v-6h7z"/>
+      <path fill="#b64ed0" d="M32 19h17v4h6v5h4v26h-4v5h-6v4H32v-4h-6v-5h-4V28h4v-5h6z"/>
+      <path fill="#ffcf43" d="M37 2h6v3h3v6h-3v3h-6v-3h-3V5h3zM31 5h2v3h-2zm16 0h2v3h-2z"/>
+      <path fill="#0c0c17" d="M28 34h8v9h-8zm16 0h8v9h-8zm-8 12h9v4h-9z"/>
+      <path fill="white" d="M29 35h2v3h-2zm16 0h2v3h-2z"/>
+      <path fill="#f794b5" d="M38 49h5v2h-5z"/>
     </svg>
   </template>
 
@@ -255,15 +299,10 @@
     </header>
 
     <section class="panel phone-card" id="join-card">
-      <h2>Join your colony</h2>
-      <p class="subtitle">Choose a name, then get ready to send some sparks.</p>
-      <form class="join-form" id="join-form">
-        <label>Your name
-          <input id="player-name" maxlength="18" autocomplete="nickname" placeholder="Microbe name" required>
-        </label>
-        <button class="button" id="join-button" type="submit">Join the colony</button>
-        <p class="error hidden" id="phone-error"></p>
-      </form>
+      <h2>Choose your hero</h2>
+      <p class="subtitle">Pick an available character to join the colony.</p>
+      <div class="character-list" id="character-list"></div>
+      <p class="error hidden" id="phone-error"></p>
     </section>
 
     <section class="panel phone-card assigned hidden" id="assigned-card">
@@ -327,8 +366,13 @@
     import { Midi } from "https://cdn.jsdelivr.net/npm/@tonejs/midi@2.0.28/+esm";
     import * as Tone from "https://esm.sh/tone@15.1.22";
 
-    const COLORS = ["#ff6b68", "#68aaff", "#63dda0", "#ffd35f"];
-    const COLOR_NAMES = ["red", "blue", "green", "yellow"];
+    const COLORS = ["#ffcc39", "#ff6bb3", "#63dda0", "#c885ef"];
+    const CHARACTERS = [
+      { name: "Geo", species: "Geobacter sulfurreducens", bio: "I make electricity! I grow tiny wires and pass electrons out of my body. Scientists use me in fuel cells that clean dirty water and make power at the same time." },
+      { name: "Shiva", species: "Shewanella oneidensis", bio: "I can breathe metals instead of oxygen! That helps clean toxic metals out of water and soil, and I can pass my electrons to electrodes too." },
+      { name: "Cable", species: "Cable bacteria", bio: "Thousands of us join into one living electric cable, centimetres long, hidden in the mud on the seafloor. Scientists only discovered us in 2012!" },
+      { name: "Rhodo", species: "Rhodopseudomonas palustris", bio: "I run on sunlight, like a plant, and I’m purple! I can make hydrogen, a clean fuel for the future." }
+    ];
     const INSTRUMENTS = [
       { midiInstrument: "standard kit", label: "Kick drum", kind: "drums" },
       { midiInstrument: "electric bass (finger)", label: "Bass", kind: "bass" },
@@ -347,11 +391,8 @@
     const roomId = params.get("room");
     const isPlayer = Boolean(roomId);
     const $ = (id) => document.getElementById(id);
-    const mascotTemplate = $("mascot-template");
-
-    function mascot(color, extraClass = "") {
-      const svg = mascotTemplate.content.firstElementChild.cloneNode(true);
-      svg.style.color = color || "currentColor";
+    function mascot(slot, extraClass = "") {
+      const svg = $(`mascot-${slot}`).content.firstElementChild.cloneNode(true);
       if (extraClass) svg.classList.add(extraClass);
       return svg;
     }
@@ -449,7 +490,7 @@
         card.style.setProperty("--player-color", COLORS[slot]);
         const top = document.createElement("div");
         top.className = "player-card-top";
-        top.append(mascot(COLORS[slot]));
+        top.append(mascot(slot));
         const text = document.createElement("div");
         if (player) {
           const name = document.createElement("div");
@@ -462,7 +503,7 @@
         } else {
           const name = document.createElement("div");
           name.className = "player-name empty-state";
-          name.textContent = `Player ${slot + 1}`;
+          name.textContent = CHARACTERS[slot].name;
           const instrument = document.createElement("div");
           instrument.className = "player-instrument";
           instrument.textContent = INSTRUMENTS[slot].label;
@@ -495,6 +536,7 @@
     let gameEndTimer = null;
     let hostRaf = 0;
     const hostPlayers = [null, null, null, null];
+    const connections = new Set();
     const pendingJoins = new WeakSet();
     let synths = null;
     let simulatedEvents = [];
@@ -539,6 +581,15 @@
       }
     }
 
+    function broadcastAvailability() {
+      const available = hostPlayers.map((player) => !player && gameState === "waiting");
+      for (const conn of connections) {
+        if (conn.open && !hostPlayers.some((player) => player?.conn === conn)) {
+          conn.send({ type: "availability", available });
+        }
+      }
+    }
+
     function refreshHost() {
       renderHostCards(hostPlayers);
       const count = hostPlayers.filter((player) => player?.connected).length;
@@ -560,7 +611,7 @@
               : "Empty slots will be simulated. The same seed reproduces their performance.";
       }
       hostPlayers.forEach((player, slot) => {
-        $(`chain-name-${slot}`).textContent = player?.name || `Microbe ${slot + 1}`;
+        $(`chain-name-${slot}`).textContent = player?.name || CHARACTERS[slot].name;
       });
     }
 
@@ -571,11 +622,11 @@
         const person = document.createElement("div");
         person.className = "chain-person";
         person.style.color = COLORS[slot];
-        person.append(mascot(COLORS[slot]));
+        person.append(mascot(slot));
         const label = document.createElement("span");
         label.className = "chain-name";
         label.id = `chain-name-${slot}`;
-        label.textContent = `Microbe ${slot + 1}`;
+        label.textContent = CHARACTERS[slot].name;
         person.append(label);
         chain.append(person);
         if (slot < 3) {
@@ -615,6 +666,15 @@
       setTimeout(() => wire.classList.remove("pulse"), 420);
     }
 
+    function dance(slot, hit) {
+      const character = $("chain").querySelectorAll(".chain-person .mascot")[slot];
+      character.classList.remove("dancing");
+      if (hit) {
+        void character.getBoundingClientRect();
+        character.classList.add("dancing");
+      }
+    }
+
     function hostTimeline() {
       if (gameState !== "playing" || !song) return;
       const elapsed = Math.max(0, (performance.now() - hostStartAt) / 1000);
@@ -652,6 +712,7 @@
     function tryStartCountdown() {
       if (gameState !== "waiting" || !song || !audioUnlocked || hostPlayers.some((player) => !player?.connected || !player.ready)) return;
       gameState = "countdown";
+      broadcastAvailability();
       hostStartAt = performance.now() + 5000;
       $("host-countdown").classList.remove("hidden");
       $("join-panel").classList.add("hidden");
@@ -673,7 +734,7 @@
         if (player) return;
         hostPlayers[slot] = {
           slot,
-          name: `Hero ${slot + 1} (bot)`,
+          name: `${CHARACTERS[slot].name} (bot)`,
           simulated: true,
           connected: true,
           ready: true,
@@ -728,6 +789,7 @@
         if (event.missed) {
           player.resolved.add(event.eventId);
           player.combo = 0;
+          dance(player.slot, false);
           refreshHost();
           broadcastScores();
         } else {
@@ -756,6 +818,7 @@
       });
       simulatedEvents = [];
       broadcast({ type: "countdown-cancelled", players: playerSummary() });
+      broadcastAvailability();
       refreshHost();
     }
 
@@ -797,6 +860,7 @@
             if (now > expected + 1200) {
               player.resolved.add(id);
               player.combo = 0;
+              dance(player.slot, false);
               player.conn?.open && player.conn.send({ type: "judgement", eventId: id, label: "Miss", cls: "miss", score: player.score, combo: player.combo });
               updated = true;
             }
@@ -838,6 +902,7 @@
         playHit(player.slot, event, expectedAt);
         clickPulse(player.slot);
       }
+      dance(player.slot, Boolean(timing.points));
       if (player.conn?.open) {
         player.conn.send({
           type: "judgement",
@@ -940,8 +1005,13 @@
         refreshHost();
       });
       hostPeer.on("connection", (conn) => {
+        connections.add(conn);
+        conn.on("open", broadcastAvailability);
         conn.on("data", (data) => handleHostMessage(conn, data));
-        conn.on("close", () => handleDisconnect(conn));
+        conn.on("close", () => {
+          connections.delete(conn);
+          handleDisconnect(conn);
+        });
         conn.on("error", (error) => {
           if (gameState === "waiting" || gameState === "countdown") showError($("host-error"), `Player connection error: ${error.message}`);
         });
@@ -980,18 +1050,17 @@
           }
           return;
         }
-        const slot = hostPlayers.findIndex((player) => !player || !player.connected);
-        if (slot < 0) {
-          conn.send({ type: "denied", message: "This colony already has four heroes." });
-          conn.close();
+        const slot = data.slot;
+        if (!Number.isInteger(slot) || slot < 0 || slot >= CHARACTERS.length) {
+          conn.send({ type: "denied", message: "Please choose a valid character." });
           return;
         }
-        const name = String(data.name || "").trim().slice(0, 18);
-        if (!name) {
-          conn.send({ type: "denied", message: "Please enter a name before joining." });
-          conn.close();
+        if (hostPlayers[slot]) {
+          conn.send({ type: "denied", message: `${CHARACTERS[slot].name} has already been chosen. Pick another hero.` });
+          broadcastAvailability();
           return;
         }
+        const name = CHARACTERS[slot].name;
         const player = {
           slot,
           name,
@@ -1020,6 +1089,7 @@
           loops: LOOPS
         });
         refreshHost();
+        broadcastAvailability();
         return;
       }
       const player = hostPlayers.find((candidate) => candidate?.conn === conn);
@@ -1049,6 +1119,7 @@
         player.ready = true;
         refreshHost();
         broadcast({ type: "players", players: playerSummary() });
+        broadcastAvailability();
         tryStartCountdown();
       } else if (data.type === "tap") {
         acceptTap(player, data);
@@ -1064,6 +1135,7 @@
         if (gameState === "countdown") cancelCountdown();
         refreshHost();
         broadcast({ type: "players", players: playerSummary() });
+        broadcastAvailability();
       } else {
         player.connected = false;
         player.ready = false;
@@ -1093,50 +1165,75 @@
     let clientCombo = 0;
     let feedbackTimer = null;
     let tapReady = false;
+    let availableCharacters = [false, false, false, false];
+    let choosingCharacter = false;
+
+    function renderCharacterChoices() {
+      const list = $("character-list");
+      list.replaceChildren();
+      CHARACTERS.forEach((character, slot) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "character-choice";
+        button.disabled = !availableCharacters[slot] || choosingCharacter;
+        button.append(mascot(slot));
+        const text = document.createElement("span");
+        const name = document.createElement("strong");
+        name.style.color = COLORS[slot];
+        name.textContent = `${character.name} · ${INSTRUMENTS[slot].label}${availableCharacters[slot] ? "" : " · unavailable"}`;
+        const species = document.createElement("small");
+        species.textContent = character.species;
+        const bio = document.createElement("small");
+        bio.textContent = character.bio;
+        text.append(name, species, bio);
+        button.append(text);
+        button.addEventListener("click", () => {
+          if (!clientConn?.open) {
+            showError($("phone-error"), "The host connection was lost. Reload to try again.");
+            return;
+          }
+          choosingCharacter = true;
+          $("phone-error").classList.add("hidden");
+          renderCharacterChoices();
+          clientConn.send({ type: "join", slot });
+        });
+        list.append(button);
+      });
+    }
 
     function makePlayer() {
       $("phone-view").classList.remove("hidden");
-      const form = $("join-form");
-      const nameInput = $("player-name");
       const error = $("phone-error");
+      renderCharacterChoices();
       if (!roomId) {
         showError(error, "This joining link is missing its room code. Scan the host's QR code.");
-        $("join-button").disabled = true;
         return;
       }
-      form.addEventListener("submit", (event) => {
-        event.preventDefault();
-        if (!nameInput.value.trim()) return;
-        clientName = nameInput.value.trim().slice(0, 18);
-        $("join-button").disabled = true;
-        $("phone-status").querySelector("span:last-child").textContent = "Connecting…";
-        setBadge($("phone-status"), "Connecting…");
-        if (!window.Peer) {
-          showError(error, "PeerJS could not load. Check your internet connection and try again.");
-          $("join-button").disabled = false;
-          return;
-        }
-        clientPeer = new window.Peer();
-        clientPeer.on("open", () => {
-          clientConn = clientPeer.connect(roomId, { reliable: true });
-          clientConn.on("open", () => clientConn.send({ type: "join", name: clientName }));
-          clientConn.on("data", handlePlayerMessage);
-          clientConn.on("close", () => {
-            if (clientGameState !== "finished") {
-              setBadge($("phone-status"), "Connection lost");
-              showError(error, "Your connection to the host was lost. Ask the host for help.");
-            }
-          });
-          clientConn.on("error", (connectionError) => {
-            setBadge($("phone-status"), "Connection error");
-            showError(error, `Could not connect: ${connectionError.message}`);
-          });
+      setBadge($("phone-status"), "Connecting…");
+      if (!window.Peer) {
+        showError(error, "PeerJS could not load. Check your internet connection and reload.");
+        return;
+      }
+      clientPeer = new window.Peer();
+      clientPeer.on("open", () => {
+        clientConn = clientPeer.connect(roomId, { reliable: true });
+        clientConn.on("data", handlePlayerMessage);
+        clientConn.on("close", () => {
+          if (clientGameState !== "finished") {
+            setBadge($("phone-status"), "Connection lost");
+            availableCharacters = [false, false, false, false];
+            renderCharacterChoices();
+            showError(error, "Your connection to the host was lost. Reload to try again.");
+          }
         });
-        clientPeer.on("error", (peerError) => {
+        clientConn.on("error", (connectionError) => {
           setBadge($("phone-status"), "Connection error");
-          showError(error, `PeerJS: ${peerError.message}`);
-          $("join-button").disabled = false;
+          showError(error, `Could not connect: ${connectionError.message}`);
         });
+      });
+      clientPeer.on("error", (peerError) => {
+        setBadge($("phone-status"), "Connection error");
+        showError(error, `PeerJS: ${peerError.message}`);
       });
       document.querySelectorAll(".tap-button").forEach((button) => {
         button.addEventListener("pointerdown", (event) => {
@@ -1164,10 +1261,15 @@
 
     function handlePlayerMessage(data) {
       if (!data || typeof data.type !== "string") return;
-      if (data.type === "denied") {
+      if (data.type === "availability") {
+        availableCharacters = data.available;
+        choosingCharacter = false;
+        renderCharacterChoices();
+        setBadge($("phone-status"), availableCharacters.some(Boolean) ? "Choose your hero" : "No heroes available", availableCharacters.some(Boolean));
+      } else if (data.type === "denied") {
+        choosingCharacter = false;
+        renderCharacterChoices();
         showError($("phone-error"), data.message || "This colony is full.");
-        setBadge($("phone-status"), "No slot available");
-        $("join-button").disabled = false;
       } else if (data.type === "assigned") {
         clientSlot = data.slot;
         clientName = data.name;
@@ -1178,7 +1280,7 @@
         clientLoops = data.loops;
         $("join-card").classList.add("hidden");
         $("assigned-card").classList.remove("hidden");
-        $("assigned-mascot").replaceChildren(mascot(clientColor));
+        $("assigned-mascot").replaceChildren(mascot(clientSlot));
         $("assigned-name").textContent = clientName;
         $("assigned-name").style.color = clientColor;
         $("assigned-instrument").textContent = data.instrument;

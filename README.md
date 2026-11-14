@@ -16,6 +16,8 @@ To use a different local port, run `PORT=8766 npm start`.
 
 The local server serves only the game and its assets. The game itself remains a
 static site and can also be hosted on GitHub Pages; Node.js is not needed there.
+Each phone chooses one available hero: Geo (drums), Shiva (bass), Cable (guitar),
+or Rhodo (chords). Each character can be selected by only one player.
 
 ## Play with fewer than four phones
 
@@ -30,6 +32,8 @@ numeric seed. It is randomized for each host page; enter the same seed with the
 same occupied slots to reproduce the simulated performance. If a real player
 disconnects during the countdown, it is canceled and the simulated slots are
 cleared so replacements can join.
+On the host screen, the characters bounce on successful notes; a miss interrupts
+the movement.
 
 Each instrument is played on the host only when its player hits a note. Missed
 notes and extra taps produce no sound for that part; simulated players follow
